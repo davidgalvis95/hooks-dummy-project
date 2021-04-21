@@ -29,6 +29,15 @@ const Ingredients = () => {
     }, []);
 
 
+    useEffect(() => {
+        //The use effect can be used as many times as we want, here for example this is rendered twice, because of the initial render, and the state update in the useEffect of above
+        console.log('RENDERING INGREDIENTS')
+    })
+
+    useEffect(() => {
+        //here for example this is rendered once, only when the ingredients array of the useState get updated
+        console.log('RENDERING INGREDIENTS WHEN INGREDIENTS GET UPDATED (CONDITIONALLY)', ingredients)
+    }, [ingredients])
 
     const addIngredientsHandler = ingredient =>{
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
