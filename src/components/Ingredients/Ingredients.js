@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 
 import IngredientForm from "./IngredientForm";
 import Search from './Search';
@@ -39,9 +39,14 @@ const Ingredients = () => {
         console.log('RENDERING INGREDIENTS WHEN INGREDIENTS GET UPDATED (CONDITIONALLY)', ingredients)
     }, [ingredients])
 
-    const filteredIngredientsHandler = filteredIngredients => {
+    //Here we wrap the function with the useCallback hook that basically caches the function and prevent it to change if the component re-renders(preventing infinite loops)
+    //This implementation was applied because of a problem that is happening with the search component when it uses this function reference to load the ingredients and update them depending
+    //in a filter that is executed with useEffect, that useEffect has a dependency in this function, and since it runs whenever this function is different(every time this ingredient component is
+    // re-rendered the function is different) it updates the state and the ingredient component is re-rendered, sending a new function reference, then search useEffect is re-rendered sending back
+    //a new state to ingredient component, rendering it again....and so on, creating an infinite loop
+    const filteredIngredientsHandler = useCallback(filteredIngredients => {
         setIngredients(filteredIngredients);
-    }
+    },[]);
 
     const addIngredientsHandler = ingredient =>{
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
