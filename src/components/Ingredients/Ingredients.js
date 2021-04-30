@@ -49,6 +49,15 @@ const Ingredients = () => {
         setIngredients(filteredIngredients);
     },[]);
 
+    const removeIngredientHandler = ingredientId => {
+        fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
+            method: 'DELETE',
+
+        }).then(responseData => {
+            setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
+        })
+    }
+
     const addIngredientsHandler = ingredient =>{
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
         fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json', {
