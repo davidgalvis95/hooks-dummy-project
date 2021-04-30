@@ -24,7 +24,7 @@ const Ingredients = () => {
                 }
                 //this will cause an infinite loop cause we are updating the state and the component is getting re-rendered, and then again
                 // when the component is re-rendered we update the state and so on
-                // setIngredients(loadedIngredients);
+                setIngredients(loadedIngredients);
             });
     }, []);
 
@@ -38,6 +38,10 @@ const Ingredients = () => {
         //here for example this is rendered once, only when the ingredients array of the useState get updated
         console.log('RENDERING INGREDIENTS WHEN INGREDIENTS GET UPDATED (CONDITIONALLY)', ingredients)
     }, [ingredients])
+
+    const filteredIngredientsHandler = filteredIngredients => {
+        setIngredients(filteredIngredients);
+    }
 
     const addIngredientsHandler = ingredient =>{
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
@@ -62,7 +66,7 @@ const Ingredients = () => {
             <IngredientForm onAddIngredient={addIngredientsHandler}/>
 
             <section>
-                <Search/>
+                <Search onLoadIngredients={filteredIngredientsHandler}/>
                 <IngredientList ingredients={ingredients} onRemoveItem={() => {}}/>
             </section>
         </div>
