@@ -3,10 +3,13 @@ import React, {useState, useEffect, useCallback} from 'react';
 import IngredientForm from "./IngredientForm";
 import Search from './Search';
 import IngredientList from "./IngredientList";
+import ErrorModal from "../UI/ErrorModal";
 
 const Ingredients = () => {
 
     const [ingredients, setIngredients] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState();
 
     //this useEffect is doing the same than in search but with all the ingredients, something done already in search useEffect
     //The useEffect when without the [] in the end is like a componentDidUpdate, will run after every component update or re render
@@ -50,15 +53,21 @@ const Ingredients = () => {
     },[]);
 
     const removeIngredientHandler = ingredientId => {
+        setIsLoading(true);
         fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
             method: 'DELETE',
 
         }).then(responseData => {
             setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
+            setIsLoading(false);
+        }).catch(error => {
+            setError('Something went wrong!');
+            setIsLoading(false);
         })
     }
 
     const addIngredientsHandler = ingredient =>{
+        setIsLoading(true);
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
         fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json', {
             method: 'POST',
@@ -73,16 +82,32 @@ const Ingredients = () => {
                 ...ingredient
             }
             ]);
+            setIsLoading(false);
+        }).catch(error => {
+            setError('Something went wrong!');
+            setIsLoading(false);
         })
+    }
+
+    const clearError = () => {
+        //When we have two calls to the setState of the useState that happen synchronously they are batched together to be executed all in one row
+        //it means that if there are two calls as in the following two lines, they won't cause 2 renders of the component but only one
+        setError(null);
+        //however this is not the best place to put this
+        //setIsLoading(false);
     }
 
     return (
         <div className="App">
-            <IngredientForm onAddIngredient={addIngredientsHandler}/>
+            {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+            <IngredientForm
+                onAddIngredient={addIngredientsHandler}
+                loading={isLoading}
+            />
 
             <section>
                 <Search onLoadIngredients={filteredIngredientsHandler}/>
-                <IngredientList ingredients={ingredients} onRemoveItem={() => {}}/>
+                <IngredientList ingredients={ingredients} onRemoveItem={removeIngredientHandler}/>
             </section>
         </div>
     );
