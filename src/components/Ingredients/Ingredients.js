@@ -1,4 +1,4 @@
-import React, {useReducer, useState, useEffect, useCallback} from 'react';
+import React, {useReducer, useEffect, useCallback} from 'react';
 
 import IngredientForm from "./IngredientForm";
 import Search from './Search';
@@ -6,6 +6,8 @@ import IngredientList from "./IngredientList";
 import ErrorModal from "../UI/ErrorModal";
 
 //This reducer makes the same operations than the redux reducers in the class based components, but does not have to do with them
+//The reducer not necessarily needs to be outside of the component, it can be inside for example when needing some props or somehow, but otherwise it should be Outside, to avoid
+//recreations of the reducer whenever the component renders
 const ingredientReducer = (currentIngredients, action) => {
     switch (action.type){
         case 'SET':
@@ -20,14 +22,28 @@ const ingredientReducer = (currentIngredients, action) => {
     }
 }
 
+//This is also good to use when there are multiple related states as in this case the loading and error are related to the http request
+const httpReducer = (currentHttpRelatedState, action) => {
+    switch (action.type){
+        case 'SEND':
+            return { loading: true, error: null }
+        case 'RESPONSE':
+            return { ...currentHttpRelatedState, loading: false }
+        case 'ERROR':
+            return {loading: false, error: action.errorMessage}
+        case 'CLEAR-ERROR':
+            return {...currentHttpRelatedState, error: null}
+        default:
+            throw new Error('Should not get there')
+    }
+}
+
 const Ingredients = () => {
 
     //This is the way to call the reducer using hooks which pass as a param into that the reducer, and the initial state
     //and returns the new state of the variable we are looking at, and the name of the function which will be used to send the actions (dispatch)
     const [ingredients, dispatch] = useReducer(ingredientReducer, []);
-    // const [ingredients, setIngredients] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState();
+    const [httpRelatedState, dispatchHttpDependantActions] = useReducer(httpReducer, {loading: false, error: null});
 
     //this useEffect is doing the same than in search but with all the ingredients, something done already in search useEffect
     //The useEffect when without the [] in the end is like a componentDidUpdate, will run after every component update or re render
@@ -73,22 +89,21 @@ const Ingredients = () => {
     },[]);
 
     const removeIngredientHandler = ingredientId => {
-        setIsLoading(true);
+        dispatchHttpDependantActions({type: 'SEND'})
         fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
             method: 'DELETE',
 
         }).then(responseData => {
             // setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
             dispatch({type: 'DELETE', id: ingredientId});
-            setIsLoading(false);
+            dispatchHttpDependantActions({type: 'RESPONSE'});
         }).catch(error => {
-            setError('Something went wrong!');
-            setIsLoading(false);
+            dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
         })
     }
 
     const addIngredientsHandler = ingredient =>{
-        setIsLoading(true);
+        dispatchHttpDependantActions({type: 'SEND'});
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
         fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json', {
             method: 'POST',
@@ -104,29 +119,29 @@ const Ingredients = () => {
             // }
             // ]);
             dispatch({type: 'ADD', ingredient: ingredient});
-            setIsLoading(false);
+            dispatchHttpDependantActions({type: 'RESPONSE'});
         }).catch(error => {
             //this is fine when the first state dow not depend on the previous one, because we have to consider that this set state updates both of them in a row
             //but if the second depends on the first, it will cause undesired states there
-            setError('Something went wrong!');
-            setIsLoading(false);
+            dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
         })
     }
 
     const clearError = () => {
         //When we have two calls to the setState of the useState that happen synchronously they are batched together to be executed all in one row
         //it means that if there are two calls as in the following two lines, they won't cause 2 renders of the component but only one
-        setError(null);
+        // setError(null);
+        dispatchHttpDependantActions({type: 'CLEAR-ERROR'})
         //however this is not the best place to put this
         //setIsLoading(false);
     }
 
     return (
         <div className="App">
-            {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+            {httpRelatedState.error && <ErrorModal onClose={clearError}>{httpRelatedState.error}</ErrorModal>}
             <IngredientForm
                 onAddIngredient={addIngredientsHandler}
-                loading={isLoading}
+                loading={httpRelatedState.loading}
             />
 
             <section>
