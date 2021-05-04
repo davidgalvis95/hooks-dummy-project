@@ -1,13 +1,31 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useReducer, useState, useEffect, useCallback} from 'react';
 
 import IngredientForm from "./IngredientForm";
 import Search from './Search';
 import IngredientList from "./IngredientList";
 import ErrorModal from "../UI/ErrorModal";
 
+//This reducer makes the same operations than the redux reducers in the class based components, but does not have to do with them
+const ingredientReducer = (currentIngredients, action) => {
+    switch (action.type){
+        case 'SET':
+            //this is defined by the reducer designer, it depends in how the action behaves
+            return action.ingredients;
+        case 'ADD':
+            return [...currentIngredients, action.ingredient];
+        case 'DELETE':
+            return currentIngredients.filter(ingredient => ingredient.id === action.id);
+        default:
+            throw new Error('Should not get there')
+    }
+}
+
 const Ingredients = () => {
 
-    const [ingredients, setIngredients] = useState([]);
+    //This is the way to call the reducer using hooks which pass as a param into that the reducer, and the initial state
+    //and returns the new state of the variable we are looking at, and the name of the function which will be used to send the actions (dispatch)
+    const [ingredients, dispatch] = useReducer(ingredientReducer, []);
+    // const [ingredients, setIngredients] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState();
 
@@ -49,7 +67,9 @@ const Ingredients = () => {
     // re-rendered the function is different) it updates the state and the ingredient component is re-rendered, sending a new function reference, then search useEffect is re-rendered sending back
     //a new state to ingredient component, rendering it again....and so on, creating an infinite loop
     const filteredIngredientsHandler = useCallback(filteredIngredients => {
-        setIngredients(filteredIngredients);
+        // setIngredients(filteredIngredients);
+        //Normally to use the reducer this is sent using objects to set the action type and the object that is the new object
+        dispatch({type: 'SET', ingredients: filteredIngredients});
     },[]);
 
     const removeIngredientHandler = ingredientId => {
@@ -58,7 +78,8 @@ const Ingredients = () => {
             method: 'DELETE',
 
         }).then(responseData => {
-            setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
+            // setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
+            dispatch({type: 'DELETE', id: ingredientId});
             setIsLoading(false);
         }).catch(error => {
             setError('Something went wrong!');
@@ -76,14 +97,17 @@ const Ingredients = () => {
         }).then(response => {
             return response.json();
         }).then(responseData => {
-            setIngredients(prevIngredientsState => [...prevIngredientsState, {
-                //this id is set accordingly to the one provided in FIREBASE, instead of passing a dummy one
-                id: responseData.name,
-                ...ingredient
-            }
-            ]);
+            // setIngredients(prevIngredientsState => [...prevIngredientsState, {
+            //     //this id is set accordingly to the one provided in FIREBASE, instead of passing a dummy one
+            //     id: responseData.name,
+            //     ...ingredient
+            // }
+            // ]);
+            dispatch({type: 'ADD', ingredient: ingredient});
             setIsLoading(false);
         }).catch(error => {
+            //this is fine when the first state dow not depend on the previous one, because we have to consider that this set state updates both of them in a row
+            //but if the second depends on the first, it will cause undesired states there
             setError('Something went wrong!');
             setIsLoading(false);
         })
