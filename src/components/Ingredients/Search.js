@@ -19,9 +19,12 @@ const Search = React.memo(props => {
             //so here i need to know if the current value of that filter, is the same to what was entered 500 ms ago, so that we know that is the value the user wants to go with
             if(enteredFilter === inputSearchRef.current.value){
                 const query = enteredFilter.length === 0 ? '' : `?orderBy="title"&equalTo="${enteredFilter}"`;
-                fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json' + query)
+                const uri = 'https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json' + query;
+                console.log(uri.toString());
+                fetch(uri)
                     .then(response => response.json())
                     .then(responseData => {
+                        console.log(responseData);
                         const loadedIngredients = [];
                         for(const key in responseData) {
                             loadedIngredients.push({
@@ -30,6 +33,7 @@ const Search = React.memo(props => {
                                 amount: responseData[key].amount
                             })
                         }
+                        console.log(loadedIngredients);
                         //we had a warning of including the props as a dependency because here we are relying on props
                         //when destructuring since this is a dependency too, we can add that in the deps of useEffect and invoke without props keyword
                         onLoadIngredients(loadedIngredients);

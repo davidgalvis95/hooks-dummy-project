@@ -54,9 +54,8 @@ const Ingredients = () => {
 
     const removeIngredientHandler = ingredientId => {
         setIsLoading(true);
-        fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
+        fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients/${ingredientId}.json`, {
             method: 'DELETE',
-
         }).then(responseData => {
             setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
             setIsLoading(false);
