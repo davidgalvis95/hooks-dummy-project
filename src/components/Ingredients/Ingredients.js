@@ -1,4 +1,6 @@
-import React, {useReducer, useEffect, useCallback} from 'react';
+//useMemo is also used to avoid a component to be rendered again if there are no dependencies that make it render
+//this can be caused because of the rendering of the component which also renders the internal components even if that last one has not changed
+import React, {useReducer, useEffect, useCallback, useMemo} from 'react';
 
 import IngredientForm from "./IngredientForm";
 import Search from './Search';
@@ -88,7 +90,7 @@ const Ingredients = () => {
         dispatch({type: 'SET', ingredients: filteredIngredients});
     },[]);
 
-    const removeIngredientHandler = ingredientId => {
+    const removeIngredientHandler = useCallback(ingredientId => {
         dispatchHttpDependantActions({type: 'SEND'})
         fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
             method: 'DELETE',
@@ -100,9 +102,11 @@ const Ingredients = () => {
         }).catch(error => {
             dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
         })
-    }
+    }, []);
 
-    const addIngredientsHandler = ingredient =>{
+    //the useCallback ook is used to not render a function if that one does not change, unless some specified dependencies change, which are defined in the second arg
+    //of useCallback, generally the dispatch functions of useReducer are not treated as dependencies
+    const addIngredientsHandler = useCallback(ingredient =>{
         dispatchHttpDependantActions({type: 'SEND'});
         //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
         fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json', {
@@ -125,16 +129,21 @@ const Ingredients = () => {
             //but if the second depends on the first, it will cause undesired states there
             dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
         })
-    }
+    }, []);
 
-    const clearError = () => {
+    const clearError = useCallback(() => {
         //When we have two calls to the setState of the useState that happen synchronously they are batched together to be executed all in one row
         //it means that if there are two calls as in the following two lines, they won't cause 2 renders of the component but only one
         // setError(null);
         dispatchHttpDependantActions({type: 'CLEAR-ERROR'})
         //however this is not the best place to put this
         //setIsLoading(false);
-    }
+    },[]);
+
+    //with this, the component is only rendered when the dependencies ar updated or they change
+    const ingredientList = useMemo(() => {
+        return <IngredientList ingredients={ingredients} onRemoveItem={removeIngredientHandler}/>;
+    },[ingredients, removeIngredientHandler])
 
     return (
         <div className="App">
@@ -146,7 +155,7 @@ const Ingredients = () => {
 
             <section>
                 <Search onLoadIngredients={filteredIngredientsHandler}/>
-                <IngredientList ingredients={ingredients} onRemoveItem={removeIngredientHandler}/>
+                {ingredientList}
             </section>
         </div>
     );
