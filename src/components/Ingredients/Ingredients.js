@@ -32,7 +32,7 @@ const Ingredients = () => {
     //This is the way to call the reducer using hooks which pass as a param into that the reducer, and the initial state
     //and returns the new state of the variable we are looking at, and the name of the function which will be used to send the actions (dispatch)
     const [ingredients, dispatch] = useReducer(ingredientReducer, []);
-    const {isLoading, error, data, sendRequestFunctionPointer} = useHttp();
+    const {isLoading, error, data, sendRequestFunctionPointer, reqExtra, reqIdentifier} = useHttp();
 
     //this useEffect is doing the same than in search but with all the ingredients, something done already in search useEffect
     //The useEffect when without the [] in the end is like a componentDidUpdate, will run after every component update or re render
@@ -56,10 +56,22 @@ const Ingredients = () => {
     // }, []);
 
 
+    //REMEMBER THAT THIS HOOK RUNS AFTER EVERY RENDER CYCLE
+    //For this useEffect, we have to consider that this runs whenever the child component is rendered again, and that happens even when a property of the state is loading,
+    //for example when a SEND request is sent and the isLoading property of the http hook is changed, but not the others as the data/responseData property, which is the one that has the response
+    //do if that happens, we will have a 'cannot read property of undefined inside this hook, when dispatching the ADD'
     useEffect(() => {
         //The use effect can be used as many times as we want, here for example this is rendered twice, because of the initial render, and the state update in the useEffect of above
-        console.log('RENDERING INGREDIENTS')
-    })
+        console.log('RENDERING INGREDIENTS');
+        if(!isLoading && !error && reqIdentifier === 'REMOVE_INGREDIENT'){
+            dispatch({type: 'DELETE', id: reqExtra })
+        }else if(!isLoading && !error && reqIdentifier === 'ADD_INGREDIENT'){
+            dispatch({
+                type: 'ADD',
+                ingredient: { id: data.name, ...reqExtra }
+            })
+        }
+    }, [data, reqExtra, reqIdentifier])
 
     useEffect(() => {
         //here for example this is rendered once, only when the ingredients array of the useState get updated
@@ -78,34 +90,23 @@ const Ingredients = () => {
     },[]);
 
     const removeIngredientHandler = useCallback(ingredientId => {
-        sendRequestFunctionPointer(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, 'DELETE')
+        sendRequestFunctionPointer(
+            `https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`,
+            'DELETE',
+            null,
+            ingredientId,
+            'REMOVE_INGREDIENT');
     }, [sendRequestFunctionPointer]);
 
     //the useCallback ook is used to not render a function if that one does not change, unless some specified dependencies change, which are defined in the second arg
     //of useCallback, generally the dispatch functions of useReducer are not treated as dependencies
     const addIngredientsHandler = useCallback(ingredient =>{
-        // dispatchHttpDependantActions({type: 'SEND'});
-        // //Whenever this handler is executed we save the new ingredient in the FIREBASE database and display it there with the previous ingredients
-        // fetch('https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json', {
-        //     method: 'POST',
-        //     body: JSON.stringify(ingredient),
-        //     headers: {'Content-Type': 'application/json'}
-        // }).then(response => {
-        //     return response.json();
-        // }).then(responseData => {
-        //     // setIngredients(prevIngredientsState => [...prevIngredientsState, {
-        //     //     //this id is set accordingly to the one provided in FIREBASE, instead of passing a dummy one
-        //     //     id: responseData.name,
-        //     //     ...ingredient
-        //     // }
-        //     // ]);
-        //     dispatch({type: 'ADD', ingredient: ingredient});
-        //     dispatchHttpDependantActions({type: 'RESPONSE'});
-        // }).catch(error => {
-        //     //this is fine when the first state dow not depend on the previous one, because we have to consider that this set state updates both of them in a row
-        //     //but if the second depends on the first, it will cause undesired states there
-        //     dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
-        // })
+        sendRequestFunctionPointer(
+            'https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients.json',
+            'POST',
+            JSON.stringify(ingredient),
+            ingredient,
+            'ADD_INGREDIENT');
     }, []);
 
     const clearError = useCallback(() => {

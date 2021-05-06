@@ -6,9 +6,9 @@ import {useReducer, useCallback} from 'react';
 const httpReducer = (currentHttpRelatedState, action) => {
     switch (action.type){
         case 'SEND':
-            return { loading: true, error: null, data: null }
+            return { loading: true, error: null, data: null, extra: null, identifier: action.identifier }
         case 'RESPONSE':
-            return { ...currentHttpRelatedState, loading: false, data: action.responseData }
+            return { ...currentHttpRelatedState, loading: false, data: action.responseData, extra: action.extra }
         case 'ERROR':
             return {loading: false, error: action.errorMessage, data: null }
         case 'CLEAR-ERROR':
@@ -23,11 +23,17 @@ const useHttp = () => {
         {
             loading: false,
             error: null,
-            data: null
+            data: null,
+            //This value will be used for sending values when performing the request but also returning them after the hook has been executed
+            //And use them in the useEffect of ingredients component, to perform some operations later on, taking advantage that everytime this sendRequest function returns
+            //it updates the state of this component and also re renders parent component, so due that useEffect is run after render cycle,
+            // then values can passed there to perform post operations
+            extra: null,
+            identifier: null
         });
 
-    const sendRequest = useCallback((url, method, body) => {
-        dispatchHttpDependantActions({type: 'SEND'});
+    const sendRequest = useCallback((url, method, body, reqExtra, reqIdentifier) => {
+        dispatchHttpDependantActions({type: 'SEND', identifier: reqIdentifier});
         fetch(url,
             {
                 method: method,
@@ -38,29 +44,20 @@ const useHttp = () => {
             })
             .then( response => response.json())
             .then(responseData => {
-            dispatchHttpDependantActions({type: 'RESPONSE', responseData: responseData});
+            dispatchHttpDependantActions({type: 'RESPONSE', responseData: responseData, extra: reqExtra});
         })
             .catch(error => {
             dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
         });
-
-        // fetch(`https://react-hooks-update-6eb9b-default-rtdb.firebaseio.com/ingredients${ingredientId}.json`, {
-        //     method: 'DELETE',
-        //
-        // }).then(responseData => {
-        //     // setIngredients(prevIngredientsState => prevIngredientsState.filter(ingredient => ingredient.id !== ingredientId));
-        //     dispatch({type: 'DELETE', id: ingredientId});
-        //     dispatchHttpDependantActions({type: 'RESPONSE'});
-        // }).catch(error => {
-        //     dispatchHttpDependantActions({type: 'ERROR', errorMessage: 'Something went wrong!'});
-        // });
     }, []);
 
     return {
         isLoading: httpRelatedState.loading,
         error: httpRelatedState.error,
         data: httpRelatedState.data,
-        sendRequestFunctionPointer: sendRequest
+        sendRequestFunctionPointer: sendRequest,
+        reqExtra: httpRelatedState.extra,
+        reqIdentifier: httpRelatedState.identifier
     }
 };
 
