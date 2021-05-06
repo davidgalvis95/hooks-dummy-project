@@ -32,7 +32,7 @@ const Ingredients = () => {
     //This is the way to call the reducer using hooks which pass as a param into that the reducer, and the initial state
     //and returns the new state of the variable we are looking at, and the name of the function which will be used to send the actions (dispatch)
     const [ingredients, dispatch] = useReducer(ingredientReducer, []);
-    const {isLoading, error, data, sendRequestFunctionPointer, reqExtra, reqIdentifier} = useHttp();
+    const {isLoading, error, data, sendRequestFunctionPointer, reqExtra, reqIdentifier, clearFunctionPointer} = useHttp();
 
     //this useEffect is doing the same than in search but with all the ingredients, something done already in search useEffect
     //The useEffect when without the [] in the end is like a componentDidUpdate, will run after every component update or re render
@@ -71,7 +71,7 @@ const Ingredients = () => {
                 ingredient: { id: data.name, ...reqExtra }
             })
         }
-    }, [data, reqExtra, reqIdentifier])
+    }, [data, reqExtra, reqIdentifier, isLoading, error])
 
     useEffect(() => {
         //here for example this is rendered once, only when the ingredients array of the useState get updated
@@ -107,16 +107,7 @@ const Ingredients = () => {
             JSON.stringify(ingredient),
             ingredient,
             'ADD_INGREDIENT');
-    }, []);
-
-    const clearError = useCallback(() => {
-        //When we have two calls to the setState of the useState that happen synchronously they are batched together to be executed all in one row
-        //it means that if there are two calls as in the following two lines, they won't cause 2 renders of the component but only one
-        // setError(null);
-        // dispatchHttpDependantActions({type: 'CLEAR-ERROR'})
-        //however this is not the best place to put this
-        //setIsLoading(false);
-    },[]);
+    }, [sendRequestFunctionPointer]);
 
     //with this, the component is only rendered when the dependencies ar updated or they change
     const ingredientList = useMemo(() => {
@@ -125,7 +116,7 @@ const Ingredients = () => {
 
     return (
         <div className="App">
-            {error && <ErrorModal onClose={clearError}>{error}</ErrorModal>}
+            {error && <ErrorModal onClose={clearFunctionPointer}>{error}</ErrorModal>}
             <IngredientForm
                 onAddIngredient={addIngredientsHandler}
                 loading={isLoading}
